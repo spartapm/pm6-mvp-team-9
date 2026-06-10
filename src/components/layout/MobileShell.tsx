@@ -7,7 +7,11 @@ export default function MobileShell({ children }: MobileShellProps) {
     <div className="h-screen-mobile overflow-hidden bg-white min-[391px]:bg-[#8f8f90]">
       <div
         data-mobile-frame
-        className="relative mx-auto h-screen-mobile w-full max-w-[390px] overflow-hidden bg-white [transform:translateZ(0)] min-[391px]:shadow-lg"
+        className="mobile-shell-frame relative mx-auto h-screen-mobile overflow-hidden bg-white [transform:translateZ(0)] min-[391px]:shadow-lg"
+        style={{
+          paddingLeft: "var(--safe-area-left)",
+          paddingRight: "var(--safe-area-right)",
+        }}
       >
         <div
           data-mobile-scroll

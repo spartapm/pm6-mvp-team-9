@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import MobileShell from "@/components/layout/MobileShell";
+import { AppProvider } from "@/context/AppContext";
+import Toast from "@/components/ui/Toast";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "group9 MVP",
-  description: "group9 MVP 프로젝트",
+  title: "오!공간상담",
+  description: "오늘의집 오!공간상담 MVP",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -42,7 +44,12 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full font-sans">
-        <MobileShell>{children}</MobileShell>
+        <AppProvider>
+          <MobileShell>
+            {children}
+            <Toast />
+          </MobileShell>
+        </AppProvider>
       </body>
     </html>
   );
