@@ -1,0 +1,55 @@
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap");
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --mobile-max-width: 390px;
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --nav-height: 3.5rem;
+  --pb-nav: calc(var(--nav-height) + var(--safe-area-bottom));
+  --pb-nav-cta: calc(var(--nav-height) + var(--safe-area-bottom) + 3.5rem);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: "Noto Sans KR", var(--font-geist-sans), sans-serif;
+  --font-mono: var(--font-geist-mono);
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "Noto Sans KR", var(--font-geist-sans), sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior: none;
+}
+
+.h-screen-mobile {
+  height: 100vh;
+  height: 100dvh;
+}
+
+@layer utilities {
+  .pb-nav {
+    padding-bottom: var(--pb-nav);
+  }
+
+  .pb-nav-cta {
+    padding-bottom: var(--pb-nav-cta);
+  }
+
+  .min-h-screen-mobile {
+    min-height: 100dvh;
+    min-height: 100svh;
+  }
+}
