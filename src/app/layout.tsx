@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import PostHogProvider from "@/components/analytics/PostHogProvider";
 import MobileShell from "@/components/layout/MobileShell";
 import { AppProvider } from "@/context/AppContext";
 import Toast from "@/components/ui/Toast";
@@ -44,12 +45,14 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full font-sans">
-        <AppProvider>
-          <MobileShell>
-            {children}
-            <Toast />
-          </MobileShell>
-        </AppProvider>
+        <PostHogProvider>
+          <AppProvider>
+            <MobileShell>
+              {children}
+              <Toast />
+            </MobileShell>
+          </AppProvider>
+        </PostHogProvider>
       </body>
     </html>
   );

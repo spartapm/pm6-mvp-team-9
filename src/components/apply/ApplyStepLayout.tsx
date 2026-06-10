@@ -2,8 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useState, type ReactNode } from "react";
+import ApplyExitModal from "@/components/apply/ApplyExitModal";
 import ProgressBar from "@/components/ui/ProgressBar";
-import Modal from "@/components/ui/Modal";
 import { useCancelOnBack } from "@/hooks/use-cancel-on-back";
 import { APPLY_STEPS } from "@/lib/constants";
 
@@ -39,7 +39,15 @@ export default function ApplyStepLayout({
 
   useCancelOnBack(showCancelModal, openCancelModal);
 
-  const handleBack = () => {
+  const handleHeaderBack = () => {
+    if (showCancelModal) {
+      setShowModal(true);
+      return;
+    }
+    exitApply();
+  };
+
+  const handleFooterBack = () => {
     if (stepIndex > 0) {
       router.push(`/apply/step/${stepIndex - 1}`);
       return;
@@ -48,6 +56,10 @@ export default function ApplyStepLayout({
       setShowModal(true);
       return;
     }
+    exitApply();
+  };
+
+  const exitApply = () => {
     if (backHref) {
       router.push(backHref);
       return;
@@ -59,7 +71,7 @@ export default function ApplyStepLayout({
     <div className="flex min-h-full flex-col bg-white pb-24">
       <ProgressBar current={stepIndex + 1} total={APPLY_STEPS.length} />
       <div className="flex h-11 items-center px-4">
-        <button type="button" onClick={handleBack} className="text-xl">
+        <button type="button" onClick={handleHeaderBack} className="text-xl" aria-label="뒤로가기">
           ←
         </button>
       </div>
@@ -79,7 +91,7 @@ export default function ApplyStepLayout({
         <div className="flex gap-2">
           <button
             type="button"
-            onClick={handleBack}
+            onClick={handleFooterBack}
             className="h-12 flex-1 rounded-xl border border-[#ddd] text-sm font-medium"
           >
             뒤로
@@ -94,17 +106,10 @@ export default function ApplyStepLayout({
           </button>
         </div>
       </div>
-      <Modal
+      <ApplyExitModal
         open={showModal}
-        title="정말 신청을 안 하시나요?"
-        description="중단 시 작성하신 내용이 저장되지 않습니다."
-        primaryLabel="계속 작성"
-        secondaryLabel="신청 취소"
-        onPrimary={() => setShowModal(false)}
-        onSecondary={() => {
-          if (backHref) router.push(backHref);
-          else router.back();
-        }}
+        onContinue={() => setShowModal(false)}
+        onCancel={exitApply}
       />
     </div>
   );

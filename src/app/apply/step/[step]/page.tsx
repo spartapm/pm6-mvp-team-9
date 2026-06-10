@@ -66,7 +66,12 @@ function ApplyStepPageContent({ params }: StepPageProps) {
   const stepIndex = Number(stepParam);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { applyForm, setApplyForm, submitApplication, clearApplyForm } = useApp();
+  const { applyForm, setApplyForm, submitApplication, clearApplyForm, showToast } = useApp();
+
+  const showUploadComingSoon = useCallback(
+    () => showToast("이미지 업로드 서비스 준비중입니다"),
+    [showToast],
+  );
 
   const creatorId =
     searchParams.get("creatorId") ||
@@ -186,14 +191,6 @@ function ApplyStepPageContent({ params }: StepPageProps) {
         return;
       }
       setApplyForm({ width, height });
-    }
-
-    if (stepIndex === 3) {
-      if (!applyForm.roomPhotos?.length) {
-        setFieldErrors(new Set(["roomPhotos"]));
-        setError("필수 입력 항목입니다.");
-        return;
-      }
     }
 
     if (stepIndex === 5) {
@@ -400,6 +397,7 @@ function ApplyStepPageContent({ params }: StepPageProps) {
             setApplyForm({ roomPhotos });
           }}
           hasError={fieldErrors.has("roomPhotos")}
+          onAddClick={showUploadComingSoon}
         />
       )}
 
@@ -442,6 +440,7 @@ function ApplyStepPageContent({ params }: StepPageProps) {
             <PhotoUploader
               photos={applyForm.ownedFurniturePhotos ?? []}
               onChange={(ownedFurniturePhotos) => setApplyForm({ ownedFurniturePhotos })}
+              onAddClick={showUploadComingSoon}
             />
           </div>
         </div>
@@ -553,6 +552,7 @@ function ApplyStepPageContent({ params }: StepPageProps) {
             <PhotoUploader
               photos={applyForm.referencePhotos ?? []}
               onChange={(referencePhotos) => setApplyForm({ referencePhotos })}
+              onAddClick={showUploadComingSoon}
             />
           </div>
           <p className="mt-8 text-base font-semibold">주의사항</p>

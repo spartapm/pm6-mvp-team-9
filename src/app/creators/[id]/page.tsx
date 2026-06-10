@@ -233,8 +233,8 @@ export default function CreatorDetailPage() {
           </button>
           <button
             type="button"
-            onClick={handleBookmark}
-            className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-[10px] border border-[#c8c8c8] bg-white"
+            disabled
+            className="flex h-[30px] w-[30px] shrink-0 cursor-not-allowed items-center justify-center rounded-[10px] border border-[#c8c8c8] bg-white opacity-40"
             aria-label="북마크"
           >
             <PencilIcon />
