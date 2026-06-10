@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import ConsultationTopBar from "@/components/consultations/ConsultationTopBar";
 import PageHeader from "@/components/layout/PageHeader";
 import BottomNav from "@/components/layout/BottomNav";
@@ -12,7 +12,7 @@ import BottomSheet from "@/components/ui/BottomSheet";
 import { useApp } from "@/context/AppContext";
 import { fetchConsultations } from "@/lib/api/mock-fetch";
 
-export default function BuyerConsultationsPage() {
+function BuyerConsultationsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { buyerConsultations, markConsultationRead, addToCart } = useApp();
@@ -253,5 +253,22 @@ export default function BuyerConsultationsPage() {
       </BottomSheet>
 
     </div>
+  );
+}
+
+export default function BuyerConsultationsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-full bg-[#f5f5f5] pb-nav">
+          <ConsultationTopBar />
+          <PageHeader title="오!공간상담 신청내역" border />
+          <ConsultationCardSkeleton />
+          <ConsultationCardSkeleton />
+        </div>
+      }
+    >
+      <BuyerConsultationsContent />
+    </Suspense>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { use, useCallback, useEffect, useState } from "react";
+import { use, useCallback, useEffect, useState, Suspense } from "react";
 import ApplyStepLayout from "@/components/apply/ApplyStepLayout";
 import PhotoUploader from "@/components/apply/PhotoUploader";
 import {
@@ -61,7 +61,7 @@ function formatDimensionInput(value?: number) {
 const ERROR_BORDER = "border-[#e03131]";
 const NORMAL_BORDER = "border-[#ddd]";
 
-export default function ApplyStepPage({ params }: StepPageProps) {
+function ApplyStepPageContent({ params }: StepPageProps) {
   const { step: stepParam } = use(params);
   const stepIndex = Number(stepParam);
   const router = useRouter();
@@ -572,5 +572,13 @@ export default function ApplyStepPage({ params }: StepPageProps) {
         </div>
       )}
     </ApplyStepLayout>
+  );
+}
+
+export default function ApplyStepPage({ params }: StepPageProps) {
+  return (
+    <Suspense fallback={<div className="min-h-full bg-white" />}>
+      <ApplyStepPageContent params={params} />
+    </Suspense>
   );
 }

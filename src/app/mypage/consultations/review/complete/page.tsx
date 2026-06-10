@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import PageHeader from "@/components/layout/PageHeader";
 
-export default function ReviewCompletePage() {
+function ReviewCompleteContent() {
   const searchParams = useSearchParams();
   const points = Number(searchParams.get("points") ?? 0);
 
@@ -40,5 +41,19 @@ export default function ReviewCompletePage() {
         </Link>
       </div>
     </div>
+  );
+}
+
+export default function ReviewCompletePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-full flex-col bg-white">
+          <PageHeader title="리뷰 등록 완료" showBack={false} />
+        </div>
+      }
+    >
+      <ReviewCompleteContent />
+    </Suspense>
   );
 }

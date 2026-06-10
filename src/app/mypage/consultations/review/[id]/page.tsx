@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { use, useCallback, useRef, useState } from "react";
+import { Suspense, use, useCallback, useRef, useState } from "react";
 import PhotoUploader from "@/components/apply/PhotoUploader";
 import PageHeader from "@/components/layout/PageHeader";
 import BottomSheet from "@/components/ui/BottomSheet";
@@ -60,7 +60,7 @@ function PointLabel({ earned }: { earned: boolean }) {
   );
 }
 
-export default function ReviewPage({ params }: PageProps) {
+function ReviewPageContent({ params }: PageProps) {
   const { id } = use(params);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -538,5 +538,19 @@ export default function ReviewPage({ params }: PageProps) {
         onSecondary={goToList}
       />
     </div>
+  );
+}
+
+export default function ReviewPage({ params }: PageProps) {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-full bg-white">
+          <PageHeader title="리뷰 작성" />
+        </div>
+      }
+    >
+      <ReviewPageContent params={params} />
+    </Suspense>
   );
 }

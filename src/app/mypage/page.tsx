@@ -14,14 +14,20 @@ type MenuItem = {
   isNew?: boolean;
 };
 
-const ORDER_STATUS = [
+type OrderStatus = {
+  label: string;
+  count: number;
+  dot?: boolean;
+};
+
+const ORDER_STATUS: OrderStatus[] = [
   { label: "입금대기", count: 0 },
   { label: "결제완료", count: 0 },
   { label: "배송준비", count: 0 },
   { label: "배송중", count: 0 },
   { label: "배송완료", count: 0 },
   { label: "리뷰", count: 47, dot: true },
-] as const;
+];
 
 const SHOPPING_MENU: MenuItem[] = [
   { label: "주문배송내역 조회" },

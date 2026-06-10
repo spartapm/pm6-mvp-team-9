@@ -26,7 +26,7 @@ function formatMemberText(members: Consultation["requestForm"]["members"]) {
   return parts.join(", ");
 }
 
-function getCreatorDraftBannerMessage(draftSavedAt: string | null) {
+function getCreatorDraftBannerMessage(draftSavedAt?: string | null) {
   if (draftSavedAt) return "임시저장 · 아직 견적서를 작성하지 않았어요";
   return "아직 견적서를 작성하지 않았어요";
 }
