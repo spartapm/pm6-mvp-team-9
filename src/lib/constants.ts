@@ -159,6 +159,19 @@ export const APPLY_PREVIEW_IMAGES = {
   referencePhotos: ["/images/apply-reference-photo-1.png"],
 } as const;
 
+/** 구매자 상담내역 c1(나다) 카드 — 인테리어 공간 사진 */
+export const DEMO_C1_ROOM_PHOTO = "/images/consultation-room-photo-c1.png";
+
+/** 구매자 상담내역 c4(구찬모) 카드 — 인테리어 공간 사진 */
+export const DEMO_C4_ROOM_PHOTO = "/images/consultation-room-photo-c4.png";
+
+/** 구매자 상담내역 c4(구찬모) 카드 — 보유 가구 사진 */
+export const DEMO_C4_OWNED_FURNITURE_PHOTO =
+  "/images/consultation-owned-furniture-photo-c4.png";
+
+/** 구매자 상담내역 c4(구찬모) 카드 — 원하는 스타일 사진 */
+export const DEMO_C4_REFERENCE_PHOTO = "/images/consultation-reference-photo-c4.png";
+
 export const APPLY_REQUEST_PHOTOS = [
   ...APPLY_PREVIEW_IMAGES.roomPhotos,
   ...APPLY_PREVIEW_IMAGES.ownedFurniturePhotos,

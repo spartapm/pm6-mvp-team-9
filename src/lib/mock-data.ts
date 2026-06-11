@@ -1,5 +1,13 @@
 import type { Consultation, Creator, RequestForm } from "./types";
-import { APPLY_PREVIEW_IMAGES, DEMO_REQUEST_NOTE, DEMO_REQUEST_NOTE_LIVING } from "./constants";
+import {
+  APPLY_PREVIEW_IMAGES,
+  DEMO_C1_ROOM_PHOTO,
+  DEMO_C4_OWNED_FURNITURE_PHOTO,
+  DEMO_C4_REFERENCE_PHOTO,
+  DEMO_C4_ROOM_PHOTO,
+  DEMO_REQUEST_NOTE,
+  DEMO_REQUEST_NOTE_LIVING,
+} from "./constants";
 
 const avatar = (seed: string) =>
   `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`;
@@ -147,7 +155,7 @@ export const SAMPLE_ANSWER = {
   ],
 };
 
-export const MOCK_SEED_VERSION = 13;
+export const MOCK_SEED_VERSION = 17;
 
 const SEED_CONSULTATION_IDS = new Set(
   ["c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8", "c9", "c10", "c11"],
@@ -205,7 +213,9 @@ export const INITIAL_CONSULTATIONS: Consultation[] = [
       budget: "50만원",
       style: "미니멀·우드톤",
       requestNote: DEMO_REQUEST_NOTE,
-      ...DEMO_REQUEST_PHOTOS,
+      roomPhotos: [DEMO_C1_ROOM_PHOTO],
+      ownedFurniturePhotos: [...APPLY_PREVIEW_IMAGES.ownedFurniturePhotos],
+      referencePhotos: [...APPLY_PREVIEW_IMAGES.referencePhotos],
     },
     draftSavedAt: null,
     answer: null,
@@ -231,7 +241,9 @@ export const INITIAL_CONSULTATIONS: Consultation[] = [
       budget: "30만원~50만원",
       style: "모던",
       requestNote: DEMO_REQUEST_NOTE_LIVING,
-      ...DEMO_REQUEST_PHOTOS,
+      roomPhotos: [DEMO_C4_ROOM_PHOTO],
+      ownedFurniturePhotos: [DEMO_C4_OWNED_FURNITURE_PHOTO],
+      referencePhotos: [DEMO_C4_REFERENCE_PHOTO],
     },
     draftSavedAt: null,
     answer: null,
