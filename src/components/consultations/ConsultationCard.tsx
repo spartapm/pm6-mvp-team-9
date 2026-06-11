@@ -46,6 +46,17 @@ function getPairedAlternativeProducts(answer: NonNullable<Consultation["answer"]
   return (answer.alternativeProducts ?? []).slice(0, count);
 }
 
+function getDisplayedProductAt(
+  index: number,
+  products: Product[],
+  alternatives: Product[],
+  showAltByIndex: Record<number, boolean>,
+): Product {
+  const alternative = alternatives[index];
+  if (showAltByIndex[index] && alternative) return alternative;
+  return products[index];
+}
+
 function ToggleSwitch({
   checked,
   onChange,
@@ -217,7 +228,7 @@ export default function ConsultationCard({
   const [selectedProducts, setSelectedProducts] = useState<string[]>(
     consultation.answer?.products.map((p) => p.id) ?? [],
   );
-  const [showAlt, setShowAlt] = useState(false);
+  const [showAltByIndex, setShowAltByIndex] = useState<Record<number, boolean>>({});
   const [fullscreenPhoto, setFullscreenPhoto] = useState<string | null>(null);
 
   const isWaiting = consultation.status === "WAITING";
@@ -225,23 +236,38 @@ export default function ConsultationCard({
   const answer = consultation.answer;
 
   const pairedAlternatives = answer ? getPairedAlternativeProducts(answer) : [];
-  const hasAlternatives = pairedAlternatives.length > 0;
+  const recommendedProducts = answer?.products ?? [];
 
-  const displayedProducts: Product[] =
-    showAlt && hasAlternatives ? pairedAlternatives : answer?.products ?? [];
+  const displayedProducts: Product[] = answer
+    ? recommendedProducts.map((_, index) =>
+        getDisplayedProductAt(index, recommendedProducts, pairedAlternatives, showAltByIndex),
+      )
+    : [];
 
   const creatorProductTotal = displayedProducts.reduce((sum, p) => sum + p.price, 0);
 
   useEffect(() => {
-    setShowAlt(false);
-  }, [consultation.id]);
+    setShowAltByIndex({});
+    setSelectedProducts(consultation.answer?.products.map((p) => p.id) ?? []);
+  }, [consultation.id, consultation.answer?.products]);
 
-  useEffect(() => {
+  const toggleAltAt = (index: number) => {
     if (!answer) return;
-    const alts = getPairedAlternativeProducts(answer);
-    const products = showAlt && alts.length > 0 ? alts : answer.products;
-    setSelectedProducts(products.map((p) => p.id));
-  }, [showAlt, answer]);
+    const alternative = pairedAlternatives[index];
+    if (!alternative) return;
+
+    const recommended = answer.products[index];
+    const willShowAlt = !showAltByIndex[index];
+
+    setShowAltByIndex((prev) => ({ ...prev, [index]: willShowAlt }));
+
+    setSelectedProducts((prev) => {
+      const fromId = willShowAlt ? recommended.id : alternative.id;
+      const toId = willShowAlt ? alternative.id : recommended.id;
+      if (!prev.includes(fromId)) return prev;
+      return [...prev.filter((id) => id !== fromId), toId];
+    });
+  };
 
   const total = displayedProducts
     .filter((p) => selectedProducts.includes(p.id))
@@ -355,45 +381,57 @@ export default function ConsultationCard({
                   </button>
                 </div>
                 <div className="mt-2 divide-y divide-[#f0f0f0]">
-                  {displayedProducts.map((product) => (
-                    <label key={product.id} className="flex gap-3 py-3 first:pt-2">
-                      <input
-                        type="checkbox"
-                        checked={selectedProducts.includes(product.id)}
-                        onChange={(e) => {
-                          setSelectedProducts((prev) =>
-                            e.target.checked
-                              ? [...prev, product.id]
-                              : prev.filter((id) => id !== product.id),
-                          );
-                        }}
-                        className="mt-1 h-4 w-4 shrink-0 accent-[#111]"
-                      />
-                      <img
-                        src={product.image}
-                        alt=""
-                        className="h-14 w-14 shrink-0 rounded object-cover"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="break-anywhere text-sm font-medium text-[#111]">{product.name}</p>
-                        <p className="mt-0.5 text-sm font-semibold text-[#111]">
-                          {formatPrice(product.price)}
-                        </p>
-                        <p className="mt-1 break-anywhere text-xs leading-5 text-[#666]">{product.reason}</p>
+                  {recommendedProducts.map((product, index) => {
+                    const alternative = pairedAlternatives[index];
+                    const displayed = displayedProducts[index];
+                    const showAlt = !!showAltByIndex[index];
+
+                    return (
+                      <div key={`${index}-${displayed.id}`} className="py-3 first:pt-2">
+                        <label className="flex gap-3">
+                          <input
+                            type="checkbox"
+                            checked={selectedProducts.includes(displayed.id)}
+                            onChange={(e) => {
+                              setSelectedProducts((prev) =>
+                                e.target.checked
+                                  ? [...prev, displayed.id]
+                                  : prev.filter((id) => id !== displayed.id),
+                              );
+                            }}
+                            className="mt-1 h-4 w-4 shrink-0 accent-[#111]"
+                          />
+                          <img
+                            src={displayed.image}
+                            alt=""
+                            className="h-14 w-14 shrink-0 rounded object-cover"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="break-anywhere text-sm font-medium text-[#111]">
+                              {displayed.name}
+                            </p>
+                            <p className="mt-0.5 text-sm font-semibold text-[#111]">
+                              {formatPrice(displayed.price)}
+                            </p>
+                            <p className="mt-1 break-anywhere text-xs leading-5 text-[#666]">
+                              {displayed.reason}
+                            </p>
+                          </div>
+                        </label>
+                        {alternative && (
+                          <div className="mt-2 flex items-center justify-end gap-2">
+                            <span className="text-xs text-[#666]">대체상품</span>
+                            <ToggleSwitch
+                              checked={showAlt}
+                              onChange={() => toggleAltAt(index)}
+                              label={`${product.name} 대체상품 보기`}
+                            />
+                          </div>
+                        )}
                       </div>
-                    </label>
-                  ))}
+                    );
+                  })}
                 </div>
-                {hasAlternatives && (
-                  <div className="mt-2 flex items-center justify-end gap-2">
-                    <span className="text-xs text-[#666]">대체상품</span>
-                    <ToggleSwitch
-                      checked={showAlt}
-                      onChange={setShowAlt}
-                      label="대체상품 보기"
-                    />
-                  </div>
-                )}
               </div>
 
               <div className="flex items-center justify-between rounded-xl bg-[#f0f8ff] px-4 py-3">
@@ -458,36 +496,46 @@ export default function ConsultationCard({
               </div>
 
               <div>
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm font-semibold text-[#111]">추천 상품</p>
-                  {hasAlternatives && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-[#666]">대체상품</span>
-                      <ToggleSwitch
-                        checked={showAlt}
-                        onChange={setShowAlt}
-                        label="대체상품 보기"
-                      />
-                    </div>
-                  )}
-                </div>
+                <p className="text-sm font-semibold text-[#111]">추천 상품</p>
                 <div className="mt-2 divide-y divide-[#f0f0f0]">
-                  {displayedProducts.map((product) => (
-                    <div key={product.id} className="flex gap-3 py-3 first:pt-2">
-                      <img
-                        src={product.image}
-                        alt=""
-                        className="h-14 w-14 shrink-0 rounded object-cover"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="break-anywhere text-sm font-medium text-[#111]">{product.name}</p>
-                        <p className="mt-0.5 text-sm font-semibold text-[#111]">
-                          {formatPrice(product.price)}
-                        </p>
-                        <p className="mt-1 break-anywhere text-xs leading-5 text-[#666]">{product.reason}</p>
+                  {recommendedProducts.map((product, index) => {
+                    const alternative = pairedAlternatives[index];
+                    const displayed = displayedProducts[index];
+                    const showAlt = !!showAltByIndex[index];
+
+                    return (
+                      <div key={`${index}-${displayed.id}`} className="py-3 first:pt-2">
+                        <div className="flex gap-3">
+                          <img
+                            src={displayed.image}
+                            alt=""
+                            className="h-14 w-14 shrink-0 rounded object-cover"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="break-anywhere text-sm font-medium text-[#111]">
+                              {displayed.name}
+                            </p>
+                            <p className="mt-0.5 text-sm font-semibold text-[#111]">
+                              {formatPrice(displayed.price)}
+                            </p>
+                            <p className="mt-1 break-anywhere text-xs leading-5 text-[#666]">
+                              {displayed.reason}
+                            </p>
+                          </div>
+                        </div>
+                        {alternative && (
+                          <div className="mt-2 flex items-center justify-end gap-2">
+                            <span className="text-xs text-[#666]">대체상품</span>
+                            <ToggleSwitch
+                              checked={showAlt}
+                              onChange={() => toggleAltAt(index)}
+                              label={`${product.name} 대체상품 보기`}
+                            />
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
