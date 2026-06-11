@@ -152,6 +152,25 @@ export const APPLY_STEPS = [
   { id: "request", title: "요청사항을 작성해주세요(선택)" },
 ] as const;
 
+/** 신청서 사진 스텝 미리보기 (데모용, + 버튼은 유지) */
+export const APPLY_PREVIEW_IMAGES = {
+  roomPhotos: ["/images/apply-room-photo-1.png"],
+  ownedFurniturePhotos: ["/images/apply-owned-furniture-photo-1.png"],
+  referencePhotos: ["/images/apply-reference-photo-1.png"],
+} as const;
+
+export const APPLY_REQUEST_PHOTOS = [
+  ...APPLY_PREVIEW_IMAGES.roomPhotos,
+  ...APPLY_PREVIEW_IMAGES.ownedFurniturePhotos,
+  ...APPLY_PREVIEW_IMAGES.referencePhotos,
+] as const;
+
+export const DEMO_REQUEST_NOTE =
+  "6평 원룸에 수납을 더하면서도 답답하지 않게 낮은 가구 위주로 골라봤어요.";
+
+export const DEMO_REQUEST_NOTE_LIVING =
+  "거실 동선이 자주 막혀서, 소파·TV는 그대로 두고 커피 테이블과 러그 위주로 정리하고 싶어요.";
+
 export const CAUTION_TEXT =
   "작성해주신 공간 정보와 평수를 기반으로 가구 배치 및 스타일링을 제안해드립니다. 다만, 실제 공간의 구조와 세부 치수가 모두 반영되지는 않을 수 있어 결과가 실제 공간과 일부 차이가 있을 수 있습니다. 보다 정확한 구매 전에는 실제 공간의 치수를 함께 확인해 주세요.";
 

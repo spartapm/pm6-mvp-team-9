@@ -39,6 +39,7 @@ type AppContextValue = {
   cart: Product[];
   filter: FilterState;
   toast: ToastState;
+  hydrated: boolean;
   showToast: (message: string) => void;
   login: () => void;
   requestBookmark: (creatorId: string) => "ok" | "login_required";
@@ -261,7 +262,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const saveAnswerDraft = useCallback((consultationId: string, draft: AnswerDraft) => {
     setAnswerDrafts((prev) => ({
       ...prev,
-      [consultationId]: { ...draft, draftSavedAt: new Date().toISOString() },
+      [consultationId]: {
+        ...draft,
+        products: draft.products.map((p) => ({ ...p })),
+        alternativeProducts: draft.alternativeProducts.map((p) => ({ ...p })),
+        draftSavedAt: new Date().toISOString(),
+      },
     }));
     setConsultations((prev) =>
       prev.map((c) =>
@@ -325,6 +331,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     cart,
     filter,
     toast,
+    hydrated,
     showToast,
     isLoggedIn,
     login,

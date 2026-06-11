@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import type { Consultation, Product } from "@/lib/types";
 import { formatPrice } from "@/lib/mock-data";
+import BuyerRequestSummary, {
+  RequestPhotoSections,
+} from "@/components/consultations/BuyerRequestSummary";
 import FullscreenImageViewer from "@/components/ui/FullscreenImageViewer";
 
 type ConsultationCardProps = {
@@ -121,24 +124,7 @@ function WaitingRequestSummary({
   return (
     <div>
       <p className="mb-3 text-xs text-[#999]">{sectionTitle}</p>
-      {form.roomPhotos?.length > 0 && (
-        <div className="mb-3 flex gap-2">
-          {form.roomPhotos.map((photo, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => onPhotoClick?.(photo)}
-              className="shrink-0"
-            >
-              <img
-                src={photo}
-                alt=""
-                className="h-[72px] w-[72px] rounded-lg object-cover"
-              />
-            </button>
-          ))}
-        </div>
-      )}
+      <RequestPhotoSections form={form} onPhotoClick={onPhotoClick} />
       <div className="space-y-2">
         {rows.map((row) => (
           <div key={row.label} className="flex gap-3 text-sm leading-5">
@@ -146,6 +132,12 @@ function WaitingRequestSummary({
             <span className="text-[#111]">{row.value}</span>
           </div>
         ))}
+        {form.requestNote?.trim() && (
+          <div className="flex gap-3 text-sm leading-5">
+            <span className="w-16 shrink-0 text-[#999]">요청사항</span>
+            <span className="whitespace-pre-line text-[#111]">{form.requestNote}</span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -158,53 +150,7 @@ function CreatorBuyerRequestSummary({
   form: Consultation["requestForm"];
   onPhotoClick?: (src: string) => void;
 }) {
-  const memberText = formatMemberText(form.members);
-  const rows = [
-    { label: "공간", value: form.spaceType },
-    { label: "구성원", value: memberText || undefined },
-    { label: "예산", value: form.budget ? formatBudgetText(form.budget) : undefined },
-    { label: "스타일", value: form.style?.replace(/&/g, "·") },
-    {
-      label: "보유 가구",
-      value: form.ownedFurniture?.length ? form.ownedFurniture.join(" / ") : undefined,
-    },
-    {
-      label: "필요한 가구",
-      value: form.neededFurniture?.length ? form.neededFurniture.join(" / ") : undefined,
-    },
-  ].filter((row) => row.value);
-
-  const firstPhoto = form.roomPhotos?.[0];
-
-  return (
-    <div>
-      <p className="mb-3 text-xs text-[#999]">구매자 신청서</p>
-      <div className="space-y-2">
-        {rows.map((row) => (
-          <div key={row.label} className="flex gap-3 text-sm leading-5">
-            <span className="w-[72px] shrink-0 text-[#999]">{row.label}</span>
-            <span className="text-[#111]">{row.value}</span>
-          </div>
-        ))}
-        {firstPhoto && (
-          <div className="flex gap-3 text-sm leading-5">
-            <span className="w-[72px] shrink-0 text-[#999]">방 사진</span>
-            <button
-              type="button"
-              onClick={() => onPhotoClick?.(firstPhoto)}
-              className="shrink-0"
-            >
-              <img
-                src={firstPhoto}
-                alt=""
-                className="h-[72px] w-[72px] rounded-lg object-cover"
-              />
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+  return <BuyerRequestSummary form={form} onPhotoClick={onPhotoClick} />;
 }
 
 function RequestSummary({
@@ -362,7 +308,7 @@ export default function ConsultationCard({
       </button>
 
       {expanded && (
-        <div className="border-t border-[#f0f0f0] px-4 pb-4 pt-3">
+        <div className="min-w-0 border-t border-[#f0f0f0] px-4 pb-4 pt-3">
           {mode === "buyer" && isWaiting && (
             <WaitingRequestSummary
               form={consultation.requestForm}
@@ -506,8 +452,8 @@ export default function ConsultationCard({
           )}
 
           {mode === "creator" && isDone && answer && (
-            <div className="space-y-4">
-              <div className="rounded-xl bg-[#f5f5f5] px-3 py-3 text-sm leading-6 text-[#333]">
+            <div className="min-w-0 space-y-4">
+              <div className="break-anywhere min-w-0 rounded-xl bg-[#f5f5f5] px-3 py-3 text-sm leading-6 text-[#333]">
                 {answer.comment}
               </div>
 
@@ -562,13 +508,13 @@ export default function ConsultationCard({
                 </button>
               )}
 
-              <div>
+              <div className="min-w-0">
                 <p className="text-sm font-semibold text-[#111]">배치 팁</p>
-                <p className="mt-1 text-sm leading-6 text-[#666]">{answer.placementTip}</p>
+                <p className="break-anywhere mt-1 text-sm leading-6 text-[#666]">{answer.placementTip}</p>
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-sm font-semibold text-[#111]">구매 전 주의점</p>
-                <p className="mt-1 text-sm leading-6 text-[#666]">{answer.caution}</p>
+                <p className="break-anywhere mt-1 text-sm leading-6 text-[#666]">{answer.caution}</p>
               </div>
 
               <button

@@ -7,6 +7,7 @@ const UPLOAD_COMING_SOON_MESSAGE = "이미지 업로드 서비스 준비중입�
 type PhotoUploaderProps = {
   photos: string[];
   onChange: (photos: string[]) => void;
+  previewPhotos?: readonly string[];
   max?: number;
   hasError?: boolean;
   variant?: "default" | "camera";
@@ -18,6 +19,7 @@ type PhotoUploaderProps = {
 export default function PhotoUploader({
   photos,
   onChange,
+  previewPhotos = [],
   max = 10,
   hasError = false,
   variant = "default",
@@ -26,9 +28,10 @@ export default function PhotoUploader({
   onAddClick,
 }: PhotoUploaderProps) {
   const { showToast } = useApp();
+  const totalCount = previewPhotos.length + photos.length;
 
   const handleAddClick = () => {
-    if (photos.length >= max) {
+    if (totalCount >= max) {
       showToast(`최대 ${max}장까지 업로드할 수 있어요`);
       return;
     }
@@ -40,7 +43,7 @@ export default function PhotoUploader({
   };
 
   const addButton =
-    photos.length < max ? (
+    totalCount < max ? (
       <button
         type="button"
         onClick={handleAddClick}
@@ -61,9 +64,19 @@ export default function PhotoUploader({
       </button>
     ) : null;
 
+  const previewThumbs = previewPhotos.map((photo, i) => (
+    <div
+      key={`preview-${i}`}
+      className="relative shrink-0"
+      style={{ width: thumbSize, height: thumbSize }}
+    >
+      <img src={photo} alt="" className="h-full w-full rounded-lg object-cover" />
+    </div>
+  ));
+
   const thumbs = photos.map((photo, i) => (
     <div
-      key={i}
+      key={`photo-${i}`}
       className="relative shrink-0"
       style={{ width: thumbSize, height: thumbSize }}
     >
@@ -85,10 +98,12 @@ export default function PhotoUploader({
       {addButtonFirst ? (
         <>
           {addButton}
+          {previewThumbs}
           {thumbs}
         </>
       ) : (
         <>
+          {previewThumbs}
           {thumbs}
           {addButton}
         </>

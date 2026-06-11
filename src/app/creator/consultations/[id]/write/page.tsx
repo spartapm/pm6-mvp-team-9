@@ -18,6 +18,7 @@ import Modal from "@/components/ui/Modal";
 import { useApp } from "@/context/AppContext";
 import { useCancelOnBack } from "@/hooks/use-cancel-on-back";
 import { formatPrice, MOCK_OHOUSE_PRODUCTS } from "@/lib/mock-data";
+import BuyerRequestSummary from "@/components/consultations/BuyerRequestSummary";
 import { getMobileScrollContainer } from "@/lib/mobile-scroll";
 import type { Answer, Consultation, Product } from "@/lib/types";
 
@@ -28,6 +29,11 @@ type ProductForm = {
   price: string;
   reason: string;
   purchaseUrl: string;
+};
+
+type ProductPairForm = {
+  product: ProductForm;
+  alternative: ProductForm;
 };
 
 type ProductFieldErrors = Record<
@@ -41,6 +47,40 @@ const emptyProduct = (): ProductForm => ({
   reason: "",
   purchaseUrl: "",
 });
+
+const emptyPair = (): ProductPairForm => ({
+  product: emptyProduct(),
+  alternative: emptyProduct(),
+});
+
+function parseOhzipNumber(url: string): number | null {
+  const match = url.trim().match(/^ohzip\.com\/(\d+)$/);
+  return match ? Number(match[1]) : null;
+}
+
+function generateUniqueOhzipUrl(existingUrls: string[]): string {
+  const used = new Set(
+    existingUrls
+      .map(parseOhzipNumber)
+      .filter((n): n is number => n !== null),
+  );
+  let num: number;
+  do {
+    num = Math.floor(Math.random() * 900) + 100;
+  } while (used.has(num));
+  return `ohzip.com/${num}`;
+}
+
+function zipProductPairs(
+  productRows: ProductForm[],
+  alternativeRows: ProductForm[],
+): ProductPairForm[] {
+  const length = Math.max(productRows.length, alternativeRows.length, 1);
+  return Array.from({ length }, (_, index) => ({
+    product: productRows[index] ?? emptyProduct(),
+    alternative: alternativeRows[index] ?? emptyProduct(),
+  }));
+}
 
 function sanitizePriceInput(value: string): string | null {
   if (value === "") return "";
@@ -72,22 +112,6 @@ const WRITE_TIP =
   "추천 이유에 '왜 이 공간에 이 상품인지'를 써주세요. 예쁘다는 설명보다 사이즈·소재·기존 가구와의 조합을 구체적으로 적을수록 구매자의 확신도가 높아져요.\n필수 항목은 최소 30자 이상 작성해주세요";
 
 const CONSULTATIONS_LIST_PATH = "/creator/consultations";
-
-function formatMemberText(members: Consultation["requestForm"]["members"]) {
-  const parts: string[] = [];
-  if (members.adult > 0) parts.push(`성인 ${members.adult}명`);
-  if (members.child > 0) parts.push(`아이 ${members.child}명`);
-  if (members.infant > 0) parts.push(`유아 ${members.infant}명`);
-  if (members.pet > 0) parts.push(`반려동물 ${members.pet}마리`);
-  return parts.join(", ");
-}
-
-function formatBudgetText(budget: string) {
-  if (budget.includes("만원") && !budget.includes(" ")) {
-    return budget.replace("만원", "만 원");
-  }
-  return budget;
-}
 
 function isProductRowFilled(p: ProductForm) {
   return (
@@ -136,48 +160,14 @@ function BuyerRequestReadonly({
   consultation: Consultation;
   onPhotoClick: (src: string) => void;
 }) {
-  const form = consultation.requestForm;
-  const memberText = formatMemberText(form.members);
-  const rows = [
-    { label: "공간", value: form.spaceType },
-    { label: "구성원", value: memberText || undefined },
-    { label: "예산", value: form.budget ? formatBudgetText(form.budget) : undefined },
-    { label: "스타일", value: form.style?.replace(/&/g, "·") },
-    {
-      label: "보유 가구",
-      value: form.ownedFurniture?.length ? form.ownedFurniture.join(" / ") : undefined,
-    },
-    {
-      label: "필요한 가구",
-      value: form.neededFurniture?.length ? form.neededFurniture.join(" / ") : undefined,
-    },
-  ].filter((row) => row.value);
-
-  const firstPhoto = form.roomPhotos?.[0];
-
   return (
     <section className="rounded-xl border border-[#eee] bg-[#f8f8f8] p-4">
       <p className="mb-3 text-sm font-semibold text-[#111]">{consultation.buyerName}</p>
-      <div className="space-y-2">
-        {rows.map((row) => (
-          <div key={row.label} className="flex gap-3 text-sm leading-5">
-            <span className="w-[72px] shrink-0 text-[#999]">{row.label}</span>
-            <span className="text-[#111]">{row.value}</span>
-          </div>
-        ))}
-        {firstPhoto && (
-          <div className="flex gap-3 text-sm leading-5">
-            <span className="w-[72px] shrink-0 text-[#999]">방 사진</span>
-            <button type="button" onClick={() => onPhotoClick(firstPhoto)} className="shrink-0">
-              <img
-                src={firstPhoto}
-                alt=""
-                className="h-[72px] w-[72px] rounded-lg object-cover"
-              />
-            </button>
-          </div>
-        )}
-      </div>
+      <BuyerRequestSummary
+        form={consultation.requestForm}
+        onPhotoClick={onPhotoClick}
+        showSectionTitle={false}
+      />
     </section>
   );
 }
@@ -189,14 +179,14 @@ export default function WriteAnswerPage({ params }: PageProps) {
     consultations,
     submitAnswer,
     saveAnswerDraft,
-    getAnswerDraft,
+    answerDrafts,
+    hydrated,
     showToast,
   } = useApp();
 
   const consultation = consultations.find((c) => c.id === id);
   const [comment, setComment] = useState("");
-  const [products, setProducts] = useState<ProductForm[]>([emptyProduct()]);
-  const [alternatives, setAlternatives] = useState<ProductForm[]>([emptyProduct()]);
+  const [productPairs, setProductPairs] = useState<ProductPairForm[]>([emptyPair()]);
   const [layout3dUrl, setLayout3dUrl] = useState("");
   const [placementTip, setPlacementTip] = useState("");
   const [caution, setCaution] = useState("");
@@ -213,75 +203,88 @@ export default function WriteAnswerPage({ params }: PageProps) {
   const [fullscreenPhoto, setFullscreenPhoto] = useState<string | null>(null);
 
   const fieldRefs = useRef<Record<string, HTMLElement | null>>({});
+  const initializedIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    const draft = getAnswerDraft(id);
+    if (!hydrated || initializedIdRef.current === id) return;
+    initializedIdRef.current = id;
+
+    const draft = answerDrafts[id];
     if (draft) {
       setComment(draft.comment);
-      setProducts(draft.products.length ? draft.products : [emptyProduct()]);
-      setAlternatives(
-        draft.alternativeProducts?.length
-          ? draft.alternativeProducts
-          : [emptyProduct()],
+      setProductPairs(
+        zipProductPairs(draft.products ?? [], draft.alternativeProducts ?? []),
       );
       setLayout3dUrl(draft.layout3dUrl ?? "");
       setPlacementTip(draft.placementTip);
       setCaution(draft.caution);
-    } else if (consultation?.answer) {
+      return;
+    }
+
+    if (consultation?.answer) {
       const answer = consultation.answer;
       setComment(answer.comment);
-      setProducts(
-        answer.products.map((p) => ({
-          name: p.name,
-          price: String(p.price),
-          reason: p.reason,
-          purchaseUrl: p.purchaseUrl ?? "",
-        })),
-      );
-      setAlternatives(
-        (answer.alternativeProducts ?? [emptyProduct()]).map((p) => ({
-          name: p.name,
-          price: String(p.price),
-          reason: p.reason,
-          purchaseUrl: p.purchaseUrl ?? "",
-        })),
+      setProductPairs(
+        zipProductPairs(
+          answer.products.map((p) => ({
+            name: p.name,
+            price: String(p.price),
+            reason: p.reason,
+            purchaseUrl: p.purchaseUrl ?? "",
+          })),
+          (answer.alternativeProducts ?? []).map((p) => ({
+            name: p.name,
+            price: String(p.price),
+            reason: p.reason,
+            purchaseUrl: p.purchaseUrl ?? "",
+          })),
+        ),
       );
       setLayout3dUrl(answer.layout3dUrl ?? "");
       setPlacementTip(answer.placementTip);
       setCaution(answer.caution);
     }
-  }, [getAnswerDraft, id, consultation?.answer]);
-
-  useEffect(() => {
-    setAlternatives((prev) => {
-      const next = [...prev];
-      while (next.length < products.length) next.push(emptyProduct());
-      return next.slice(0, Math.max(products.length, 1));
-    });
-  }, [products.length]);
+  }, [hydrated, id, answerDrafts, consultation?.answer]);
 
   const productTotal = useMemo(
     () =>
-      products.reduce(
-        (sum, p) => sum + (p.name && Number(p.price) > 0 ? Number(p.price) : 0),
+      productPairs.reduce(
+        (sum, pair) =>
+          sum +
+          (pair.product.name && Number(pair.product.price) > 0
+            ? Number(pair.product.price)
+            : 0),
         0,
       ),
-    [products],
+    [productPairs],
   );
 
   const altTotal = useMemo(
     () =>
-      alternatives.reduce(
-        (sum, p) => sum + (p.name && Number(p.price) > 0 ? Number(p.price) : 0),
+      productPairs.reduce(
+        (sum, pair) =>
+          sum +
+          (pair.alternative.name && Number(pair.alternative.price) > 0
+            ? Number(pair.alternative.price)
+            : 0),
         0,
       ),
-    [alternatives],
+    [productPairs],
   );
 
   const hasUnsavedChanges =
     comment.trim().length > 0 ||
-    products.some((p) => p.name || p.price || p.reason || p.purchaseUrl) ||
-    alternatives.some((p) => p.name || p.price || p.reason || p.purchaseUrl) ||
+    productPairs.some(
+      (pair) =>
+        pair.product.name ||
+        pair.product.price ||
+        pair.product.reason ||
+        pair.product.purchaseUrl ||
+        pair.alternative.name ||
+        pair.alternative.price ||
+        pair.alternative.reason ||
+        pair.alternative.purchaseUrl,
+    ) ||
     placementTip.trim().length > 0 ||
     caution.trim().length > 0 ||
     layout3dUrl.trim().length > 0;
@@ -330,7 +333,8 @@ export default function WriteAnswerPage({ params }: PageProps) {
       issues.push({ fieldId: "comment", message: "크리에이터 한마디를 입력해주세요" });
     }
 
-    products.forEach((p, index) => {
+    productPairs.forEach((pair, index) => {
+      const p = pair.product;
       if (isProductRowFilled(p)) return;
       pErrs[index] = getProductRowErrors(p);
       if (!issues.some((issue) => issue.fieldId.startsWith("products"))) {
@@ -342,8 +346,8 @@ export default function WriteAnswerPage({ params }: PageProps) {
       }
     });
 
-    for (let index = 0; index < products.length; index++) {
-      const p = alternatives[index] ?? emptyProduct();
+    for (let index = 0; index < productPairs.length; index++) {
+      const p = productPairs[index].alternative;
       if (isProductRowFilled(p)) continue;
       aErrs[index] = getProductRowErrors(p);
       if (!issues.some((issue) => issue.fieldId.startsWith("alternatives"))) {
@@ -395,23 +399,27 @@ export default function WriteAnswerPage({ params }: PageProps) {
   }
 
   const buildAnswer = (): Answer => {
-    const validProducts: Product[] = products.filter(isProductRowFilled).map((p, i) => ({
-      id: `new-${i}`,
-      name: p.name,
-      price: Number(p.price),
-      image: consultation.requestForm.roomPhotos[0] ?? "",
-      reason: p.reason,
-      purchaseUrl: p.purchaseUrl,
-    }));
+    const validProducts: Product[] = productPairs
+      .filter((pair) => isProductRowFilled(pair.product))
+      .map((pair, i) => ({
+        id: `new-${i}`,
+        name: pair.product.name,
+        price: Number(pair.product.price),
+        image: consultation.requestForm.roomPhotos[0] ?? "",
+        reason: pair.product.reason,
+        purchaseUrl: pair.product.purchaseUrl,
+      }));
 
-    const validAlts: Product[] = alternatives.filter(isProductRowFilled).map((p, i) => ({
-      id: `alt-${i}`,
-      name: p.name,
-      price: Number(p.price),
-      image: consultation.requestForm.roomPhotos[0] ?? "",
-      reason: p.reason,
-      purchaseUrl: p.purchaseUrl,
-    }));
+    const validAlts: Product[] = productPairs
+      .filter((pair) => isProductRowFilled(pair.alternative))
+      .map((pair, i) => ({
+        id: `alt-${i}`,
+        name: pair.alternative.name,
+        price: Number(pair.alternative.price),
+        image: consultation.requestForm.roomPhotos[0] ?? "",
+        reason: pair.alternative.reason,
+        purchaseUrl: pair.alternative.purchaseUrl,
+      }));
 
     return {
       comment,
@@ -428,8 +436,8 @@ export default function WriteAnswerPage({ params }: PageProps) {
     saveAnswerDraft(id, {
       consultationId: id,
       comment,
-      products,
-      alternativeProducts: alternatives,
+      products: productPairs.map((pair) => ({ ...pair.product })),
+      alternativeProducts: productPairs.map((pair) => ({ ...pair.alternative })),
       layout3dUrl,
       placementTip,
       caution,
@@ -475,13 +483,8 @@ export default function WriteAnswerPage({ params }: PageProps) {
     }
   };
 
-  const clearTextFieldError = (field: "comment" | "placementTip" | "caution", value: string) => {
-    const isValid =
-      field === "comment" ? value.trim().length > 0 : isTextFieldValid(value);
-    if (errors.includes(field) && isValid) {
-      setErrors((e) => e.filter((x) => x !== field));
-    }
-  };
+  const getPairSlotRows = (list: "products" | "alternatives") =>
+    productPairs.map((pair) => (list === "products" ? pair.product : pair.alternative));
 
   const updateProduct = (
     list: "products" | "alternatives",
@@ -496,14 +499,18 @@ export default function WriteAnswerPage({ params }: PageProps) {
     }
 
     setJustSaved(false);
-    const source = list === "products" ? products : alternatives;
-    const updatedRow = { ...source[index], [field]: value };
-    const nextRows = source.map((p, i) => (i === index ? updatedRow : p));
-
-    if (list === "products") setProducts(nextRows);
-    else setAlternatives(nextRows);
-
-    syncProductRowErrors(list, index, updatedRow, nextRows);
+    setProductPairs((prev) => {
+      const nextPairs = prev.map((pair, i) => {
+        if (i !== index) return pair;
+        const slot = list === "products" ? "product" : "alternative";
+        const updatedRow = { ...pair[slot], [field]: value };
+        return { ...pair, [slot]: updatedRow };
+      });
+      const updatedRow =
+        list === "products" ? nextPairs[index].product : nextPairs[index].alternative;
+      syncProductRowErrors(list, index, updatedRow, getPairSlotRows(list));
+      return nextPairs;
+    });
   };
 
   const openProductPicker = (list: "products" | "alternatives", index: number) => {
@@ -514,47 +521,66 @@ export default function WriteAnswerPage({ params }: PageProps) {
   const selectMockProduct = (item: (typeof MOCK_OHOUSE_PRODUCTS)[number]) => {
     if (!pickerTarget) return;
     const { list, index } = pickerTarget;
-    const source = list === "products" ? products : alternatives;
-    const updatedRow = {
-      ...source[index],
-      name: item.name,
-      price: String(item.price),
-    };
-    const nextRows = source.map((p, i) => (i === index ? updatedRow : p));
-
-    if (list === "products") setProducts(nextRows);
-    else setAlternatives(nextRows);
-
-    syncProductRowErrors(list, index, updatedRow, nextRows);
+    setJustSaved(false);
+    setProductPairs((prev) => {
+      const existingUrls = prev.flatMap((pair) => [
+        pair.product.purchaseUrl,
+        pair.alternative.purchaseUrl,
+      ]);
+      const purchaseUrl = generateUniqueOhzipUrl(existingUrls);
+      const nextPairs = prev.map((pair, i) => {
+        if (i !== index) return pair;
+        const slot = list === "products" ? "product" : "alternative";
+        const updatedRow = {
+          ...pair[slot],
+          name: item.name,
+          price: String(item.price),
+          purchaseUrl,
+        };
+        return { ...pair, [slot]: updatedRow };
+      });
+      const updatedRow =
+        list === "products" ? nextPairs[index].product : nextPairs[index].alternative;
+      syncProductRowErrors(list, index, updatedRow, getPairSlotRows(list));
+      return nextPairs;
+    });
     setProductPickerOpen(false);
     setPickerTarget(null);
     showToast(`${item.name} 상품을 선택했어요`);
   };
 
-  const renderProductFields = (
+  const addProductPair = () => {
+    if (productPairs.length >= 10) return;
+    setJustSaved(false);
+    setProductPairs((prev) => [...prev, emptyPair()]);
+  };
+
+  const removeProductPair = (index: number) => {
+    if (productPairs.length <= 1) return;
+    setJustSaved(false);
+    setProductPairs((prev) => prev.filter((_, i) => i !== index));
+    setProductErrors({});
+    setAltErrors({});
+    setErrors((prev) => prev.filter((x) => x !== "products" && x !== "alternatives"));
+  };
+
+  const renderProductFormFields = (
     list: "products" | "alternatives",
     product: ProductForm,
     index: number,
     fieldErrs: ProductFieldErrors,
     reasonPlaceholder: string,
+    title: string,
   ) => (
-    <div
-      key={`${list}-${index}`}
-      ref={(el) => {
-        fieldRefs.current[`${list}-${index}`] = el;
-      }}
-      className="mt-3 rounded-xl border border-[#eee] p-3"
-    >
-      <div className="mb-2 flex items-center justify-between">
-        <span className="text-xs font-medium text-[#999]">
-          {list === "products" ? "추천" : "대체"} 상품 {index + 1}
-        </span>
+    <>
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <span className="text-sm font-semibold text-[#111]">{title}</span>
         <button
           type="button"
-          className="text-xs text-[#01a1ff]"
+          className="shrink-0 rounded-lg border border-[#01a1ff] bg-white px-2.5 py-1 text-xs font-medium text-[#01a1ff]"
           onClick={() => openProductPicker(list, index)}
         >
-          오늘의집 상품 선택
+          오늘의집 선택
         </button>
       </div>
       <input
@@ -596,11 +622,74 @@ export default function WriteAnswerPage({ params }: PageProps) {
         fieldErrs[index] && (
           <p className="mt-1 text-xs text-[#e03131]">필수 항목을 입력해주세요</p>
         )}
+    </>
+  );
+
+  const renderProductPair = (pair: ProductPairForm, index: number) => (
+    <div
+      key={`pair-${index}`}
+      ref={(el) => {
+        fieldRefs.current[`pair-${index}`] = el;
+      }}
+      className="mt-4 rounded-2xl border border-[#e8e8e8] bg-[#fafafa] p-4"
+    >
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <div>
+          <p className="text-sm font-bold text-[#111]">상품 세트 {index + 1}</p>
+          <p className="mt-0.5 text-xs text-[#999]">추천 1개 + 대체 1개</p>
+        </div>
+        {productPairs.length > 1 && (
+          <button
+            type="button"
+            onClick={() => removeProductPair(index)}
+            className="shrink-0 rounded-lg border border-[#ffc9c9] bg-[#fff5f5] px-2.5 py-1 text-xs font-medium text-[#e03131]"
+          >
+            삭제
+          </button>
+        )}
+      </div>
+
+      <div
+        ref={(el) => {
+          fieldRefs.current[`products-${index}`] = el;
+        }}
+        className="rounded-xl border border-[#eee] bg-white p-3"
+      >
+        {renderProductFormFields(
+          "products",
+          pair.product,
+          index,
+          productErrors,
+          PRODUCT_REASON_PLACEHOLDER,
+          "추천 상품",
+        )}
+      </div>
+
+      <div
+        ref={(el) => {
+          fieldRefs.current[`alternatives-${index}`] = el;
+        }}
+        className="mt-3 rounded-xl border border-[#dbeafe] bg-[#fafcff] p-3"
+      >
+        {renderProductFormFields(
+          "alternatives",
+          pair.alternative,
+          index,
+          altErrors,
+          ALT_REASON_PLACEHOLDER,
+          "대체 상품",
+        )}
+      </div>
     </div>
   );
 
-  const showAddProduct =
-    products.length < 10 && products.every(isProductRowFilled);
+  const clearTextFieldError = (field: "comment" | "placementTip" | "caution", value: string) => {
+    const isValid =
+      field === "comment" ? value.trim().length > 0 : isTextFieldValid(value);
+    if (errors.includes(field) && isValid) {
+      setErrors((e) => e.filter((x) => x !== field));
+    }
+  };
 
   return (
     <div className="min-h-full bg-white pb-write-footer">
@@ -647,64 +736,29 @@ export default function WriteAnswerPage({ params }: PageProps) {
           }}
           className="mt-6"
         >
-          <label className="text-sm font-semibold">
-            추천 상품 <span className="text-[#e03131]">*</span>
-          </label>
-          <p className="mt-1 text-xs text-[#999]">최대 10개 · 필수 1개 이상</p>
-          {products.map((product, index) =>
-            renderProductFields(
-              "products",
-              product,
-              index,
-              productErrors,
-              PRODUCT_REASON_PLACEHOLDER,
-            ),
-          )}
-          {showAddProduct && (
+          <div>
+            <label className="text-sm font-semibold">
+              추천 · 대체 상품 <span className="text-[#e03131]">*</span>
+            </label>
+            <p className="mt-1 text-xs text-[#999]">
+              추천 1개 + 대체 1개가 한 세트 · 최대 10세트
+            </p>
+          </div>
+          {productPairs.map((pair, index) => renderProductPair(pair, index))}
+          {productPairs.length < 10 && (
             <button
               type="button"
-              onClick={() => {
-                setJustSaved(false);
-                setProducts((prev) => [...prev, emptyProduct()]);
-              }}
-              className="mt-2 w-full rounded-xl border border-dashed border-[#01a1ff] py-2.5 text-sm text-[#01a1ff]"
+              onClick={addProductPair}
+              className="mt-3 flex w-full items-center justify-center gap-1 rounded-xl border border-dashed border-[#01a1ff] bg-[#f8fcff] py-3 text-sm font-semibold text-[#01a1ff]"
             >
-              + 상품 추가
+              추천 상품 추가
             </button>
           )}
-          {products.some((p) => p.name && Number(p.price) > 0) && (
-            <p className="mt-3 text-sm font-semibold text-[#111]">
-              추천 합계 {formatPrice(productTotal)}
-            </p>
-          )}
-        </section>
-
-        <section
-          id="field-alternatives"
-          ref={(el) => {
-            fieldRefs.current.alternatives = el;
-          }}
-          className="mt-6"
-        >
-          <label className="text-sm font-semibold">
-            대체 상품 <span className="text-[#e03131]">*</span>
-          </label>
-          <p className="mt-1 text-xs text-[#999]">
-            추천 상품 1개당 대체 상품 1개 · 최대 10개
-          </p>
-          {alternatives.map((product, index) =>
-            renderProductFields(
-              "alternatives",
-              product,
-              index,
-              altErrors,
-              ALT_REASON_PLACEHOLDER,
-            ),
-          )}
-          {alternatives.some((p) => p.name && Number(p.price) > 0) && (
-            <p className="mt-3 text-sm font-semibold text-[#111]">
-              대체 합계 {formatPrice(altTotal)}
-            </p>
+          {(productTotal > 0 || altTotal > 0) && (
+            <div className="mt-3 space-y-1 text-sm font-semibold text-[#111]">
+              {productTotal > 0 && <p>추천 합계 {formatPrice(productTotal)}</p>}
+              {altTotal > 0 && <p>대체 합계 {formatPrice(altTotal)}</p>}
+            </div>
           )}
         </section>
 

@@ -5,6 +5,7 @@ import { use, useCallback, useEffect, useState, Suspense } from "react";
 import ApplyStepLayout from "@/components/apply/ApplyStepLayout";
 import PhotoUploader from "@/components/apply/PhotoUploader";
 import {
+  APPLY_PREVIEW_IMAGES,
   APPLY_STEPS,
   BUDGET_OPTIONS,
   CAUTION_TEXT,
@@ -66,7 +67,7 @@ function ApplyStepPageContent({ params }: StepPageProps) {
   const stepIndex = Number(stepParam);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { applyForm, setApplyForm, submitApplication, clearApplyForm, showToast } = useApp();
+  const { applyForm, setApplyForm, submitApplication, showToast } = useApp();
 
   const showUploadComingSoon = useCallback(
     () => showToast("이미지 업로드 서비스 준비중입니다"),
@@ -232,20 +233,28 @@ function ApplyStepPageContent({ params }: StepPageProps) {
         members: members,
         width: applyForm.width,
         height: applyForm.height,
-        roomPhotos: applyForm.roomPhotos ?? [],
+        roomPhotos: [
+          ...APPLY_PREVIEW_IMAGES.roomPhotos,
+          ...(applyForm.roomPhotos ?? []),
+        ],
         ownedFurniture: applyForm.ownedFurniture ?? [],
         ownedFurnitureOther: applyForm.ownedFurnitureOther,
-        ownedFurniturePhotos: applyForm.ownedFurniturePhotos ?? [],
+        ownedFurniturePhotos: [
+          ...APPLY_PREVIEW_IMAGES.ownedFurniturePhotos,
+          ...(applyForm.ownedFurniturePhotos ?? []),
+        ],
         neededFurniture: applyForm.neededFurniture ?? [],
         neededFurnitureOther: applyForm.neededFurnitureOther,
         budget: applyForm.budget ?? "",
         style: applyForm.style ?? "",
         styleOther: applyForm.styleOther,
         requestNote: applyForm.requestNote,
-        referencePhotos: applyForm.referencePhotos ?? [],
+        referencePhotos: [
+          ...APPLY_PREVIEW_IMAGES.referencePhotos,
+          ...(applyForm.referencePhotos ?? []),
+        ],
       };
       submitApplication(form, creatorId, creatorName, creatorAvatar);
-      clearApplyForm();
       router.push("/apply/complete");
       return;
     }
@@ -392,6 +401,7 @@ function ApplyStepPageContent({ params }: StepPageProps) {
       {stepIndex === 3 && (
         <PhotoUploader
           photos={applyForm.roomPhotos ?? []}
+          previewPhotos={APPLY_PREVIEW_IMAGES.roomPhotos}
           onChange={(roomPhotos) => {
             clearField("roomPhotos");
             setApplyForm({ roomPhotos });
@@ -439,6 +449,7 @@ function ApplyStepPageContent({ params }: StepPageProps) {
           <div className="mt-4">
             <PhotoUploader
               photos={applyForm.ownedFurniturePhotos ?? []}
+              previewPhotos={APPLY_PREVIEW_IMAGES.ownedFurniturePhotos}
               onChange={(ownedFurniturePhotos) => setApplyForm({ ownedFurniturePhotos })}
               onAddClick={showUploadComingSoon}
             />
@@ -551,6 +562,7 @@ function ApplyStepPageContent({ params }: StepPageProps) {
           <div className="mt-3">
             <PhotoUploader
               photos={applyForm.referencePhotos ?? []}
+              previewPhotos={APPLY_PREVIEW_IMAGES.referencePhotos}
               onChange={(referencePhotos) => setApplyForm({ referencePhotos })}
               onAddClick={showUploadComingSoon}
             />

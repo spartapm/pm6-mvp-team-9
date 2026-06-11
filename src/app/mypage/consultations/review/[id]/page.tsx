@@ -86,7 +86,6 @@ function ReviewPageContent({ params }: PageProps) {
   const [showExit, setShowExit] = useState(false);
   const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
   const [highlightItems, setHighlightItems] = useState<Set<string>>(new Set());
-  const [submitting, setSubmitting] = useState(false);
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const galleryRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
@@ -191,7 +190,7 @@ function ReviewPageContent({ params }: PageProps) {
     reader.readAsDataURL(file);
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (stars < 1) {
       showToast("별점을 선택해주세요");
       return;
@@ -217,13 +216,10 @@ function ReviewPageContent({ params }: PageProps) {
       return;
     }
 
-    setSubmitting(true);
     submitReview(id, {
       score: stars,
       satisfaction,
       comment: text,
-      photos,
-      video: video ?? undefined,
       creatorUsageAgreed,
     });
     router.push(`/mypage/consultations/review/complete?points=${totalPoints}`);
@@ -478,9 +474,8 @@ function ReviewPageContent({ params }: PageProps) {
         <button
           type="button"
           onClick={handleSubmit}
-          disabled={submitting}
           className={`w-full rounded-xl py-3.5 text-sm font-semibold text-white ${
-            canSubmit && !submitting ? "bg-[#01a1ff]" : "bg-[#ccc]"
+            canSubmit ? "bg-[#01a1ff]" : "bg-[#ccc]"
           }`}
         >
           등록하기

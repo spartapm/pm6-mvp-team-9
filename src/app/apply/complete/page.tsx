@@ -1,11 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
 import PageHeader from "@/components/layout/PageHeader";
 import { useApp } from "@/context/AppContext";
 
 export default function ApplyCompletePage() {
-  const { buyerName } = useApp();
+  const { buyerName, clearApplyForm } = useApp();
+
+  useEffect(() => {
+    clearApplyForm();
+  }, [clearApplyForm]);
 
   return (
     <div className="flex min-h-full flex-col bg-white">
